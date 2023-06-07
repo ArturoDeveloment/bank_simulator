@@ -15,8 +15,14 @@ class logic_banc:
                 "type_account": cuenta,
                 "password": input("Ingrese contraseña: ")
             }
+            
+            comparison = self.bank.request_id_client(data.get('document'))
+            if comparison == 'exists':
+                return None
+            
         except Exception as e:
             print(f"Error de entrada de datos -> {e}")
+            return None
 
         if data.get('type_account') == None:
             print('Tipo de cuenta incorrecto')
@@ -26,11 +32,48 @@ class logic_banc:
         new_person = Storage(**data)
     
     def show_account(self):
-        account = int(input("Ingrese su número de cuenta: "))
+        account = self.get_account()
         password = input("Digite su contraseña: ")
         self.bank.show_account(account, password)
+        print('Aditional space')
+        self.bank.request_balance(account, password)
     
     def make_transaction(self):
-        account = int(input("Ingrese su número de cuenta: "))
+        account = self.get_account()
         password = input("Digite su contraseña: ")
         self.bank.make_transaction(account, password)
+    
+    def deposit(self):
+        account = self.get_account()
+        password = input("Digite su contraseña: ")
+        self.bank.account_deposit(account, password)
+    
+    def request_data(self):
+        account = self.get_account()
+        password = input("Digite su contraseña: ")
+        self.bank.request_balance(account, password)
+    
+    def get_account(self)-> int:
+        try:
+            account = int(input("Ingrese su número de cuenta: "))
+            return account
+        except Exception as e:
+            print("Error: ", e)
+            return -1
+    
+    def password_forgot(self):
+        account = self.get_account()
+        if account == -1:
+            return None
+        document = int(input('Digite su cedula o identificación: '))
+        name = input('Digite su nombre: ')
+        type_account = input("""
+Su tipo de cuenta es: 
+    1. ahorros
+    2. corriente
+opción: """)
+        type_account = 'corriente' if type_account == '2' else 'ahorros' if type_account == '1' else None
+        self.bank.password_change(account, document, name, type_account)
+    
+    def iter(self):
+        self.bank.iter_accounts_users()

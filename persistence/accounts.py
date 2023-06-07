@@ -2,6 +2,7 @@ from datetime import datetime as time
 from persistence.generate_account_number import GenerateAccount
 
 class Storage:
+    __id_cedulas = []
     __accounts = {}
     def __init__(self, name = None, document = None, balance = None, type_account = None, password = None) -> None:
         self.__name = name
@@ -11,7 +12,8 @@ class Storage:
         self.__type = type_account
         self.__password = password 
         self.__number_acount = GenerateAccount().account 
-        if (name != None and document != None and balance != None and type_account != None and password != None):
+        if (name != None):
+            self.__id_cedulas.append(document)
             self.__set_data()
         
     def get_data(self):
@@ -58,16 +60,21 @@ class Storage:
         if not(self.authentication(data, password_try)):
             return None
         
-        withdrawal = float(input('Digite el valor a retirar: '))
+        try:
+            withdrawal = float(input('Digite el valor a retirar: '))
+        except Exception as e:
+            print(e)
+            return None
+        
         withdrawal = withdrawal if withdrawal > 0 else 0
         
         if withdrawal == 0:
-            print('Esa transacción no es válida')
+            print('Esa transacción es válida')
             return None
         
         if ( data['balance'] >= withdrawal ):
             data['balance'] -= withdrawal
-        elif(((data['balance']+data['coupe']) >= withdrawal) and (data['type_account'] == 'corriente')):
+        elif((data['type_account'] == 'corriente') and ((data['balance']+data['coupe']) >= withdrawal)):
             withdrawal -= data['balance']
             data['balance'] = 0
             data['debt'] += withdrawal
@@ -84,9 +91,83 @@ class Storage:
                 print(f'Usted no tiene fondos y debe {data["debt"]}')
             else:
                 print('Trasacción fuera de rango')
+            return None
+        print('Transacción exitosa')
+
+    def account_deposit(self, number_account, password_try):
+        data = self.__accounts.get(number_account)
+        if not(Storage.authentication(data, password_try)):
+            return False
+        try:
+            to_deposit = float(input('Digite cuánto va a depositar: '))
+        except Exception as e:
+            print(e)
+            return None
+        if to_deposit <= 0:
+            print('Nose puede completar la transación')
+            return None
+        # review if user haves debts
+        if (data.get('type_account') == 'corriente' and data.get('debt') > 0 ):
+            debt_get = data.get('debt')
+            if to_deposit > debt_get:
+                to_deposit -= debt_get
+                data['debt'] = 0
+                if (data.get('type_account') == 'corriente'):
+                    data['coupe'] += debt_get
+                
+            elif debt_get >= to_deposit:
+                data['debt'] -= to_deposit
+                debt_get -= data['debt']
+                # if account current save or increase the coupe
+                if (data.get('type_account') == 'corriente'):
+                    data['coupe'] += debt_get
+                print(f"{'Se cubre la deuda y se aumenta el cupo ':^40}")
+                return True
+            print(f"{'No tiene deuda, recupera cupo y aumenta su saldo':^40}")
             
-            
-    def authentication(self, data, password_try) -> bool:
+        data['balance'] += to_deposit
+        print(f'Su salario aumento en un {to_deposit}')
+        # for ever deposit the coupe increase at 5% it calculate over deposit not balance, something it if account is corriente
+        if (data.get('type_account') == 'corriente' and data.get('balance') >= 0):
+            increase_coupe = to_deposit * 0.05
+            data['coupe'] += increase_coupe
+            print(f'Su cupo aumenta en un 5% : {increase_coupe}')
+    
+    def request_balance(self, number_account, password_try):
+        data = self.__accounts.get(number_account)
+        if not(Storage.authentication(data, password_try)):
+            return False
+        presentation = f"Sr(a) {data.get('name')} su saldo actual es: "
+        print(f"\n{presentation:*^30}")
+        print(f"Su saldo es: {data.get('balance') - data.get('debt')}" if data.get('type_account') == 'corriente' else f"Su saldo es: {data.get('balance')}")
+        coupe = data.get('coupe') if data.get('type_account') == 'corriente' else 0
+        print(f"Su cupo actual es {data.get('coupe')} ") if (data.get('coupe') != None and data.get('coupe') == 0) else None
+        print(f"Su cupo actual es: {coupe}") if coupe != 0 else None
+        print(f"El total disponible es: {data.get('balance') + coupe}")
+    
+    def request_id_client(self, id_user):
+        if id_user in self.__id_cedulas:
+            print('Ya tiene una cuenta registrada')
+            return 'exists'
+        return None
+    
+    def iter_accounts_users(self):
+        for account, data in self.__accounts.items():
+            cupo = '' if data.get('type_account') == 'ahorros' else f"->|Cupo: ${data.get('coupe')}"
+            print(f"{account: <20} -> |name: {data.get('name'): <30} -> |Contraseña: {data.get('password').replace(data.get('password'), '*' * len(data.get('password'))): <30} ->|saldo: ${data.get('balance'): <20}{cupo}")
+    
+    def password_change(self, number_acount, document, name, type_account):
+        data = self.__accounts.get(number_acount)
+        if data.get('document') == document and data.get('name') == name and data.get('type_account') == type_account:
+            password_new = input('Digite la nueva contraseña: ')
+            data['password'] = password_new
+            print('Se aplicó el cambio')
+            return None
+        print('Hay incongruencias en la verificación')
+        return None
+        
+    @staticmethod
+    def authentication(data, password_try) -> bool:
         if data == None:
             print('No existe dicho registro')
             return False

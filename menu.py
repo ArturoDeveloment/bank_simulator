@@ -6,7 +6,9 @@ class MenuPrincipal():
         self.bank = logic_banc()
         while True:
             self.option = self.set_option()
-            self.select_option()
+            option = self.select_option()
+            if option == 'exit':
+                break
     
     def set_option(self)-> int:
         return int(input("""
@@ -15,7 +17,9 @@ class MenuPrincipal():
     3. Retirar
     4. Depositar en cuenta
     5. Consultar saldo
-    6. Consultar cliente
+    6. Consultar client
+    7. Olvide mi contraseña
+    8. Salir
 
 Ingrese una opción: """))
     
@@ -28,10 +32,17 @@ Ingrese una opción: """))
             case 3:
                 self.bank.make_transaction()
             case 4:
-                pass
+                self.bank.deposit()
             case 5:
-                pass
+                self.bank.request_data()
             case 6:
-                pass
+                self.bank.iter()
+            case 7:
+                self.bank.password_forgot()
+            case 8:
+                return 'exit'
             case _:
                 print("option not found")
+
+if __name__ == '__main__':
+    MenuPrincipal()
